@@ -1,0 +1,7 @@
+---
+
+- name: reload jenkins configuration
+  command: "{{ jenkins_cli_cmd }} reload-configuration"
+
+- name: safely restart the jenkins daemon
+  command: "{{ jenkins_cli_cmd }} safe-restart"

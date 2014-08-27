@@ -1,0 +1,52 @@
+---
+# Plugin Installation
+
+# ---
+# work around update center metadata bug
+# https://issues.jenkins-ci.org/browse/JENKINS-10061
+# ---
+- name: create jenkins updates directory
+  sudo: true
+  file: path={{ jenkins_home }}/updates state=directory
+    owner=jenkins group=nogroup mode=0755
+
+# must remove javascript wrapper...
+- name: download updates center metadata file
+  sudo: true
+  shell: /usr/bin/curl --location {{ jenkins_updates_url }} | /bin/sed '1d;$d' > {{ jenkins_updates_file }}
+    creates={{ jenkins_updates_file }}
+
+- name: fix updates center metadata permissions
+  sudo: true
+  file: path={{ jenkins_updates_file }} state=file
+    owner=jenkins group=nogroup mode=0644
+# ---
+# ---
+
+- name: check for existing plugins
+  command: "{{ jenkins_cli_cmd }} list-plugins"
+  register: jenkins_existing_plugins
+  changed_when: false
+
+- name: install required jenkins plugins
+  command: "{{ jenkins_cli_cmd }} install-plugin {{ item }} -deploy"
+  with_items: jenkins_required_plugins
+  when: jenkins_existing_plugins.stdout.find("{{ item }}") == -1
+
+# obsolete plugins are listed with the new version in parentheses
+- name: check for outdated plugins
+  shell: /usr/bin/java -jar {{ jenkins_cli_jar }} -s http://localhost:8080/ list-plugins | awk '/\)$/{ print $1 }'
+  register: jenkins_outdated_plugins
+
+# updates to plugins won't actually be applied until a restart
+- name: update outdated plugins
+  command: "{{ jenkins_cli_cmd }} install-plugin {{ item }}"
+  with_items: jenkins_outdated_plugins.stdout_lines
+  notify: safely restart the jenkins daemon
+
+- name: disable unneccessary plugins
+  sudo: true
+  copy: dest={{ jenkins_home }}/plugins/{{ item }}.jpi.disabled content=""
+    owner=jenkins group=nogroup mode=0644
+  with_items: jenkins_disabled_plugins
+  notify: safely restart the jenkins daemon

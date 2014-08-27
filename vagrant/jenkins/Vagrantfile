@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# how much ram the virtual machine should have,
+# export $JENKINS_MEMORY to override the default
+JENKINS_MEMORY = ENV['JENKINS_MEMORY'] ||= '2048'
+
+# why are these variables? provisioning Jenkins can take a long time, and so it
+# makes sense to pre-provision a base box to download via vagrant cloud or s3
+# (which could then be overridden when testing provisioning changes...)
+# but for this demo, we use a standard ubuntu cloud box
+VAGRANTFILE_API_VERSION = '2'
+BOX_NAME = 'trusty'
+BOX_URL = 'http://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box'
+ANSIBLE_PLAYBOOK = '../../ansible/playbooks/dev_jenkins.yml'
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.define :jenkins do |jenkins|
+    jenkins.vm.box = BOX_NAME
+    jenkins.vm.box_url = BOX_URL
+    jenkins.vm.hostname = 'jenkins.cluelesscorp.com'
+    jenkins.vm.network :private_network, ip: '192.168.111.99'
+    # jenkins.vm.synced_folder '.', '/vagrant', type: 'nfs'
+    jenkins.ssh.forward_agent = true
+
+    # use all available cpu cores
+    host = RbConfig::CONFIG['host_os']
+    if host =~ /darwin/
+      cpus = `sysctl -n hw.ncpu`.to_i
+    elsif host =~ /linux/
+      cpus = `nproc`.to_i
+    else
+      cpus = 1
+    end
+
+    jenkins.vm.provider :virtualbox do |vb|
+      vb.customize ['modifyvm', :id, '--cpus', cpus]
+      vb.customize ['modifyvm', :id, '--memory', JENKINS_MEMORY]
+      vb.customize ['guestproperty', 'set', :id, '/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold', 600000]
+    end
+
+    jenkins.vm.provision 'ansible' do |ansible|
+      ansible.inventory_path = 'hosts'
+      ansible.playbook = ANSIBLE_PLAYBOOK
+      ansible.host_key_checking = false
+    end
+  end
+end

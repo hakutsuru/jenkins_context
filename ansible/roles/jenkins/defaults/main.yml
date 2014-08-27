@@ -1,0 +1,45 @@
+---
+
+# jenkins home directory
+jenkins_home: /var/lib/jenkins
+
+# local path to the updates center metadata file
+jenkins_updates_file: "{{ jenkins_home }}/updates/default.json"
+
+# remote url of the updates center metadata file
+jenkins_updates_url: "http://updates.jenkins-ci.org/update-center.json"
+
+# path to the jenkins cli jar file
+jenkins_cli_jar: /usr/share/jenkins/jenkins-cli.jar
+
+# number of seconds to wait for jenkins to come up
+jenkins_delay_seconds: 120
+
+# jenkins http port
+# keep standard port, but when using web server, it helps to use
+# variables for port and listening-ip
+jenkins_http_port: 8080
+
+# command for running jenkins cli tasks
+jenkins_cli_cmd: "/usr/bin/java -jar {{ jenkins_cli_jar }} -s http://localhost:{{ jenkins_http_port }}/"
+
+# plugins are not required by the demo code, but here are some
+# typical removals and additions, alter to taste
+
+# jenkins plugins to disable
+jenkins_disabled_plugins:
+  - ant
+  - cvs
+  - ldap
+  - maven-plugin
+  - subversion
+  - translation
+  - windows-slaves
+
+# jenkins plugins to install
+jenkins_required_plugins:
+  - build-pipeline-plugin
+  - copyartifact
+  - ghprb
+  - git
+  - github

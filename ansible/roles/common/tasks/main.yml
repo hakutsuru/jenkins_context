@@ -1,0 +1,11 @@
+---
+
+- name: ensure the apt package cache is up-to-date
+  sudo: true
+  apt: update_cache=yes cache_valid_time=3600
+  register: apt_cache_update
+
+- name: remove orphaned dependency packages
+  sudo: true
+  command: /usr/bin/apt-get --assume-yes autoremove
+  changed_when: false

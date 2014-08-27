@@ -1,0 +1,18 @@
+---
+# Configure the Jenkins jobs and dependencies.
+
+- name: add job directories
+  sudo: true
+  file: path={{ jenkins_home }}/jobs/{{ item | basename | replace(".xml.j2", "") }} state=directory
+    owner=jenkins group=nogroup mode=0755
+  with_fileglob:
+    - ../templates/jobs/*
+
+- name: add job configs
+  sudo: true
+  template: src={{ item }}
+    dest={{ jenkins_home }}/jobs/{{ item | basename | replace(".xml.j2", "") }}/config.xml
+    owner=jenkins group=nogroup mode=0644
+  with_fileglob:
+    - ../templates/jobs/*
+  notify: reload the jenkins configuration

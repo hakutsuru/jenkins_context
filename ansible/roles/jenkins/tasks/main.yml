@@ -1,0 +1,30 @@
+---
+
+- name: add jenkins deb repository key to apt
+  sudo: true
+  apt_key: url=http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key state=present
+
+- name: add the jenkins deb repository as an apt source
+  sudo: true
+  apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/'
+    state=present update_cache=yes
+
+- name: install the jenkins package
+  sudo: true
+  apt: name=jenkins state=present
+  register: jenkins_install
+
+- name: wait for jenkins daemon to accept connections
+  wait_for: port={{ jenkins_http_port }} delay={{ jenkins_delay_seconds }} state=started
+  when: jenkins_install.changed
+
+- name: download jenkins cli jar
+  sudo: true
+  get_url: url=http://{{ ansible_ssh_host }}:{{ jenkins_http_port }}/jnlpJars/jenkins-cli.jar dest={{ jenkins_cli_jar }}
+    owner=root group=root mode=0644
+
+# plugins are not relevant to demo code, but appear in the references
+# about creating job pipelines, so ¯\_(ツ)_/¯
+
+# - include: plugins.yml
+- include: jobs.yml

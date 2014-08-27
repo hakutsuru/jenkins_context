@@ -1,0 +1,11 @@
+---
+# Deploy a dev environment for working on Jenkins CI.
+
+- hosts:
+  - development
+  roles:
+    - role: common
+      tags: common
+ 
+    - role: jenkins
+      tags: jenkins
